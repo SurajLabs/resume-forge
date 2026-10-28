@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ResumeForge — Editorial ATS Resume Studio</title>
+  <meta name="description" content="Generate high-impact ATS-optimized resumes with Swiss editorial precision, multi-provider AI fallback (Anthropic, Gemini, Groq), and one-click PDF, DOCX, and TXT downloads.">
+  
+  <!-- Google Fonts: Fraunces, Instrument Serif, Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Material Symbols & Lucide Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+
+  <!-- Export Dependencies (PDF, DOCX, FileSaver, JSZip) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Sticky Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <!-- Brand & Title -->
+      <div class="brand-section">
+        <div class="brand-logo">RF</div>
+        <div>
+          <h1 class="brand-title">ResumeForge <span class="sticker-badge">Editorial ATS</span></h1>
+          <span class="brand-tagline">Executive Ledger ATS Architecture • Google Gemini & Multi-Model Engine</span>
+        </div>
+      </div>
+
+      <!-- AI Quota Monitor (Daily Limits: Gemini 1,500 req / 5M tokens, Groq 70B 1,000 req / 100k tokens, Groq 8B 14,400 req / 500k tokens) -->
+      <div class="quota-bar" title="API usage percentage & remaining quota">
+        <div class="quota-pill" id="quotaGemini"><span class="dot"></span><span class="quota-name">Gemini:</span> <strong>0%</strong> <span class="quota-meta">(0/1500 req)</span></div>
+        <div class="quota-pill" id="quotaGroq70"><span class="dot"></span><span class="quota-name">Groq 70B:</span> <strong>0%</strong> <span class="quota-meta">(0/1000 req)</span></div>
+        <div class="quota-pill" id="quotaGroq8"><span class="dot"></span><span class="quota-name">Groq 8B:</span> <strong>0%</strong> <span class="quota-meta">(0/14400 req)</span></div>
+      </div>
+
+      <!-- Header Actions -->
+      <div class="header-actions">
+        <!-- Live Preview Drawer Toggle -->
+        <button type="button" class="btn-secondary" id="togglePreviewDrawerBtn" title="Inspect Full ATS Document">
+          <span class="material-symbols-outlined" style="font-size: 16px;">visibility</span> Live Preview
+        </button>
+
+        <!-- Sample Data Button (Fix 1: Safe Preview Modal) -->
+        <button type="button" class="btn-secondary" id="sampleDataBtn" title="Preview and Load Sample Profile">
+          <span class="material-symbols-outlined" style="font-size: 16px;">auto_fix_high</span> Sample Data
+        </button>
+
+        <!-- API Settings Modal -->
+        <button type="button" class="btn-icon" id="openApiModalBtn" title="AI Provider Setup">
+          <span class="material-symbols-outlined">key</span>
+        </button>
+
+        <!-- Dark Mode Toggle -->
+        <button type="button" class="btn-icon" id="darkModeToggle" title="Toggle Theme">
+          <span class="material-symbols-outlined">dark_mode</span>
+        </button>
+
+        <!-- FIX 3: Sticky Download Dropdown -->
+        <div class="download-dropdown-wrapper">
+          <button type="button" class="btn-download-primary" id="downloadDropdownBtn" title="Download Resume in Multiple Formats">
+            <span class="material-symbols-outlined" style="font-size: 16px;">download</span>
+            <span>Download</span>
+            <span class="material-symbols-outlined" style="font-size: 14px;">expand_more</span>
+          </button>
+          
+          <div class="download-menu" id="downloadDropdownMenu">
+            <button type="button" class="download-option-btn" id="optDownloadPdf">
+              <span class="material-symbols-outlined" style="font-size: 18px; color: var(--accent-rust);">picture_as_pdf</span>
+              <div>
+                PDF Document (.pdf)
+                <small>A4, fitted to a single page</small>
+              </div>
+            </button>
+            <button type="button" class="download-option-btn" id="optDownloadDocx">
+              <span class="material-symbols-outlined" style="font-size: 18px; color: var(--ink-primary);">description</span>
+              <div>
+                Microsoft Word (.docx)
+                <small>Native editable Word document</small>
+              </div>
+            </button>
+            <button type="button" class="download-option-btn" id="optDownloadTxt">
+              <span class="material-symbols-outlined" style="font-size: 18px; color: var(--ink-muted);">article</span>
+              <div>
+                Plain Text (.txt)
+                <small>Clean ASCII layout for ATS portals</small>
+              </div>
+            </button>
+            <button type="button" class="download-option-btn" id="optCopyPlain">
+              <span class="material-symbols-outlined" style="font-size: 18px; color: var(--ink-muted);">content_copy</span>
+              <div>
+                Copy Plain Text
+                <small>Copy formatted text directly to clipboard</small>
+              </div>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       UPGRADE 4: BENTO GRID DASHBOARD
+       ========================================================================== -->
+  <main class="bento-container">
+    <form id="bentoForm" onsubmit="event.preventDefault();">
+      <div class="bento-grid">
+
+        <!-- ====================================================================
+             ROW 1: [Profile - large] [ATS Score meter] [2 small stat cards]
+             ==================================================================== -->
+
+        <!-- 1. Profile Card (Large: Columns 1-6) -->
+        <section class="glass-card card-profile" aria-label="Profile Information">
+          <div class="card-header-bar">
+            <div class="card-title-group">
+              <div class="card-icon"><span class="material-symbols-outlined">badge</span></div>
+              <h2 class="card-title">Profile & Personal Information</h2>
+            </div>
+            <span class="card-tagline">Contact & Identity</span>
+          </div>
+
+          <div class="form-group-row">
+            <div class="form-group">
+              <label class="form-label" for="fullName">Full Name <span class="req">*</span></label>
+              <input type="text" id="fullName" class="glass-input" placeholder="e.g. Alexander Chen" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="targetRole">Target Job Title <span class="req">*</span></label>
+              <input type="text" id="targetRole" class="glass-input" placeholder="e.g. Senior Full Stack Engineer" required>
+            </div>
+          </div>
+
+          <div class="form-group-row">
+            <div class="form-group">
+              <label class="form-label" for="email">Email Address <span class="req">*</span></label>
+              <input type="email" id="email" class="glass-input" placeholder="alex.chen.dev@email.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="phone">Phone Number <span class="req">*</span></label>
+              <input type="tel" id="phone" class="glass-input" placeholder="+1 (555) 382-9014">
+            </div>
+          </div>
+
+          <div class="form-group-row">
+            <div class="form-group">
+              <label class="form-label" for="location">Location (City, State/Country)</label>
+              <input type="text" id="location" class="glass-input" placeholder="San Francisco, CA">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="linkedin">LinkedIn Profile URL</label>
+              <input type="text" id="linkedin" class="glass-input" placeholder="linkedin.com/in/alexchen-dev">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="portfolio">Portfolio / GitHub / Web Presence</label>
+            <input type="text" id="portfolio" class="glass-input" placeholder="github.com/alexchen | alexchen.io">
+          </div>
+        </section>
+
+        <!-- 2. ATS Score Meter Card (Columns 7-9) -->
+        <section class="glass-card card-ats-meter" aria-label="ATS Score Meter">
+          <div class="card-header-bar" style="width: 100%;">
+            <div class="card-title-group">
+              <div class="card-icon"><span class="material-symbols-outlined">verified</span></div>
+              <h2 class="card-title">ATS Index</h2>
+            </div>
+            <span class="card-tagline">Parser Verified</span>
+          </div>
+
+          <!-- Circular Radial Gauge with JetBrains Mono -->
+          <div class="meter-wrapper">
+            <svg class="meter-svg" viewBox="0 0 100 100">
+              <circle class="meter-bg-circle" cx="50" cy="50" r="42" />
+              <circle class="meter-fill-circle" id="atsScoreCircle" cx="50" cy="50" r="42" />
+            </svg>
+            <div class="meter-value-display">
+              <span id="atsScoreValue">98/100</span>
+              <span class="meter-label">Match Score</span>
+            </div>
+          </div>
+
+          <div style="font-size: 0.74rem; color: var(--ink-muted); line-height: 1.4; text-align: center;">
+            Linear Flow • Standard Headings • Table-Free
+          </div>
+        </section>
+
+        <!-- 3. Two Small Stat Cards (Columns 10-12) -->
+        <div class="stats-column">
+          <!-- Stat Card 1: Keywords Matched -->
+          <article class="glass-card stat-card" aria-label="Target Keywords Matched">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 0.74rem; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.05em;">JD Keywords</span>
+              <span class="material-symbols-outlined" style="font-size: 16px; color: var(--ink-muted);">travel_explore</span>
+            </div>
+            <div class="stat-value" id="matchedKeywordsCount">6 matched</div>
+            <div class="stat-subtext">Keywords naturally embedded</div>
+          </article>
+
+          <!-- Stat Card 2: Daily AI Quota -->
+          <article class="glass-card stat-card" aria-label="Daily AI Quota Left">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="font-size: 0.74rem; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.05em;">Engine Model</span>
+              <span class="material-symbols-outlined" style="font-size: 16px; color: var(--accent-rust);">neurology</span>
+            </div>
+            <div class="stat-value" id="activeProviderDisplay">Gemini 2.5</div>
+            <div class="stat-subtext">Google Gemini primary with smart fallback</div>
+          </article>
+        </div>
+
+        <!-- ====================================================================
+             ROW 2: [Experience Editor - wide] [Skills + AI Suggestions]
+             ==================================================================== -->
+
+        <!-- 4. Experience Editor Card (Wide: Columns 1-7) -->
+        <section class="glass-card card-experience" aria-label="Work Experience Editor">
+          <div class="card-header-bar">
+            <div class="card-title-group">
+              <div class="card-icon"><span class="material-symbols-outlined">work</span></div>
+              <h2 class="card-title">Work Experience (Repeatable)</h2>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--text-dim);">Google X-Y-Z Formula Friendly</span>
+          </div>
+
+          <div id="experienceContainer"></div>
+
+          <button type="button" class="add-more-btn" id="addExpBtn">
+            <span class="material-symbols-outlined" style="font-size: 16px;">add</span> Add Another Experience Entry
+          </button>
+        </section>
+
+        <!-- 5. Skills + AI Suggestions Card (Columns 8-12) -->
+        <section class="glass-card card-skills" aria-label="Skills & AI Suggestions">
+          <div class="card-header-bar">
+            <div class="card-title-group">
+              <div class="card-icon" style="background: rgba(6, 182, 212, 0.18); color: #67e8f9;">
+                <span class="material-symbols-outlined">psychology</span>
+              </div>
+              <h2 class="card-title">Skills & Keyword Tags</h2>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--text-dim);">Type + Enter</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Core Competency Chips</label>
+            <div class="skills-input-wrapper" id="skillsWrapper">
+              <div id="skillsChipsContainer"></div>
+              <input type="text" id="skillInput" class="skill-text-input" placeholder="Type skill and hit Enter...">
+            </div>
+          </div>
+
+          <div>
+            <span style="font-size: 0.74rem; font-weight: 600; color: var(--text-muted);">Quick-Add AI Suggestions:</span>
+            <div class="skill-suggestions">
+              <button type="button" class="suggest-tag" data-skill="React">React</button>
+              <button type="button" class="suggest-tag" data-skill="TypeScript">TypeScript</button>
+              <button type="button" class="suggest-tag" data-skill="Node.js">Node.js</button>
+              <button type="button" class="suggest-tag" data-skill="Python">Python</button>
+              <button type="button" class="suggest-tag" data-skill="Go">Go</button>
+              <button type="button" class="suggest-tag" data-skill="PostgreSQL">PostgreSQL</button>
+              <button type="button" class="suggest-tag" data-skill="Docker">Docker</button>
+              <button type="button" class="suggest-tag" data-skill="Kubernetes">Kubernetes</button>
+              <button type="button" class="suggest-tag" data-skill="AWS">AWS</button>
+              <button type="button" class="suggest-tag" data-skill="CI/CD">CI/CD</button>
+              <button type="button" class="suggest-tag" data-skill="System Design">System Design</button>
+              <button type="button" class="suggest-tag" data-skill="Microservices">Microservices</button>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top: 1.25rem; margin-bottom: 0;">
+            <label class="form-label" for="summary">Professional Summary Draft</label>
+            <textarea id="summary" class="glass-textarea" style="min-height: 100px;" placeholder="Describe your career highlights and specialization. AI will rewrite this into a 3-line ATS summary..."></textarea>
+          </div>
+        </section>
+
+        <!-- ====================================================================
+             ROW 3: [Education & Projects] [Generate ATS Button & JD]
+             ==================================================================== -->
+
+        <!-- 6. Education & Projects Editor (Columns 1-7) -->
+        <section class="glass-card card-education-projects" aria-label="Education and Projects">
+          <div class="card-header-bar">
+            <div class="card-title-group">
+              <div class="card-icon"><span class="material-symbols-outlined">school</span></div>
+              <h2 class="card-title">Education & Key Projects</h2>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 1.25rem;">
+            <h3 style="font-size: 0.88rem; font-weight: 700; color: var(--ink-primary); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Academic Credentials</h3>
+            <div id="educationContainer"></div>
+            <button type="button" class="add-more-btn" id="addEduBtn" style="margin-top: 0.35rem;">
+              <span class="material-symbols-outlined" style="font-size: 16px;">add</span> Add Education Entry
+            </button>
+          </div>
+
+          <div style="margin-top: 1.25rem;">
+            <h3 style="font-size: 0.88rem; font-weight: 700; color: var(--ink-primary); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Notable Projects & Repositories</h3>
+            <div id="projectsContainer"></div>
+            <button type="button" class="add-more-btn" id="addProjBtn" style="margin-top: 0.35rem;">
+              <span class="material-symbols-outlined" style="font-size: 16px;">add</span> Add Project Entry
+            </button>
+          </div>
+        </section>
+
+        <!-- 7. FIX 2: Generate ATS Button & Target JD Card (Columns 8-12) -->
+        <section class="glass-card card-ai-generate" aria-label="ATS Resume AI Optimizer">
+          <div class="card-header-bar">
+            <div class="card-title-group">
+              <div class="card-icon"><span class="material-symbols-outlined">auto_awesome</span></div>
+              <h2 class="card-title">Target Job Description & AI</h2>
+            </div>
+            <span class="card-tagline">10s Undo Protected</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="modelSelector">AI Fallback Strategy</label>
+            <select id="modelSelector" class="glass-select">
+              <option value="gemini" selected>Google Gemini 3.8 Flash (Default)</option>
+              <option value="auto">Auto: Gemini 3.8 Flash → Claude → Groq</option>
+              <option value="claude">Anthropic Claude 3.5 Sonnet</option>
+              <option value="groq-70b">Groq Llama 3.3 70B Versatile</option>
+              <option value="groq-8b">Groq Llama 3.1 8B Instant</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="jobDescription">Target Job Description (JD) <span class="req">*</span></label>
+            <textarea id="jobDescription" class="glass-textarea" style="min-height: 120px;" placeholder="Paste the target job description to extract core competencies, align action verbs, and tailor impact bullets..."></textarea>
+          </div>
+
+          <!-- Master AI Action Button -->
+          <button type="button" class="btn-generate-master" id="generateAtsBtn">
+            <span class="material-symbols-outlined" style="font-size: 18px;">auto_fix_high</span>
+            <span>Optimize Resume with AI</span>
+          </button>
+
+          <div style="display: flex; gap: 0.65rem; margin-top: 0.65rem;">
+            <button type="button" class="btn-secondary" id="quickRenderBtn" style="flex: 1; justify-content: center;">
+              <span class="material-symbols-outlined" style="font-size: 16px;">refresh</span> Refresh Preview
+            </button>
+            <button type="button" class="btn-secondary" id="clearDataBtn" style="color: var(--accent-rust);" title="Clear form">
+              <span class="material-symbols-outlined" style="font-size: 16px;">delete</span> Clear
+            </button>
+          </div>
+        </section>
+
+      </div>
+    </form>
+  </main>
+
+  <!-- ==========================================================================
+       Live Resume Preview Drawer / Modal
+       ========================================================================== -->
+  <div class="preview-drawer-overlay" id="previewDrawer" role="dialog" aria-modal="true" aria-label="Resume Document Preview">
+    <div class="drawer-content">
+      <div class="drawer-toolbar">
+        <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+          <h3 style="font-family: var(--font-serif); font-size: 1.15rem; font-weight: 700; color: var(--ink-primary);">Document Preview</h3>
+          
+          <!-- Font Selector -->
+          <div style="display: inline-flex; background: var(--paper-subtle); border: 1px solid var(--border-hairline); border-radius: var(--radius-sharp); padding: 2px;">
+            <button type="button" class="pill-btn font-pill-btn active" data-font="Inter" style="padding: 4px 10px; font-size: 0.72rem; font-weight: 600; border: none; background: var(--paper-surface); color: var(--ink-primary); cursor: pointer; border-radius: 2px;">Inter</button>
+            <button type="button" class="pill-btn font-pill-btn" data-font="Fraunces" style="padding: 4px 10px; font-size: 0.72rem; font-weight: 600; border: none; background: transparent; color: var(--ink-muted); cursor: pointer; border-radius: 2px;">Fraunces</button>
+            <button type="button" class="pill-btn font-pill-btn" data-font="Arial" style="padding: 4px 10px; font-size: 0.72rem; font-weight: 600; border: none; background: transparent; color: var(--ink-muted); cursor: pointer; border-radius: 2px;">Arial</button>
+          </div>
+
+          <!-- Density Selector -->
+          <div style="display: inline-flex; background: var(--paper-subtle); border: 1px solid var(--border-hairline); border-radius: var(--radius-sharp); padding: 2px;">
+            <button type="button" class="pill-btn density-pill-btn active" data-density="standard" style="padding: 4px 10px; font-size: 0.72rem; font-weight: 600; border: none; background: var(--paper-surface); color: var(--ink-primary); cursor: pointer; border-radius: 2px;">Standard</button>
+            <button type="button" class="pill-btn density-pill-btn" data-density="compact" style="padding: 4px 10px; font-size: 0.72rem; font-weight: 600; border: none; background: transparent; color: var(--ink-muted); cursor: pointer; border-radius: 2px;">Compact</button>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <button type="button" class="btn-secondary" onclick="window.printAtsResume()" style="padding: 0.4rem 0.85rem;">
+            <span class="material-symbols-outlined" style="font-size: 16px;">print</span> Print
+          </button>
+          <button type="button" class="btn-icon" id="closeDrawerBtn" title="Close Preview">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Resume Sheet Container -->
+      <article id="resume-sheet">
+        <!-- Rendered dynamically by renderer.js -->
+      </article>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       HTML Templates for Dynamic Repeatable Blocks
+       ========================================================================== -->
+
+  <!-- Work Experience Template -->
+  <template id="experienceTemplate">
+    <div class="entry-card experience-card">
+      <button type="button" class="remove-btn" onclick="removeBlock(this)" title="Remove experience">&times;</button>
+      <div class="form-group-row">
+        <div class="form-group">
+          <label class="form-label">Job Title <span class="req">*</span></label>
+          <input type="text" class="glass-input job-title" placeholder="Job Title *">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Company <span class="req">*</span></label>
+          <input type="text" class="glass-input company" placeholder="Company *">
+        </div>
+      </div>
+      <div class="form-group-row">
+        <div class="form-group">
+          <label class="form-label">Duration</label>
+          <input type="text" class="glass-input duration" placeholder="e.g. Mar 2021 – Present">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input type="text" class="glass-input location" placeholder="e.g. San Francisco, CA">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label class="form-label">Achievements & Tasks (Raw notes fine — AI polishes this)</label>
+        <textarea class="glass-textarea raw-description" placeholder="Describe achievements, metrics, technologies used..."></textarea>
+      </div>
+    </div>
+  </template>
+
+  <!-- Education Template -->
+  <template id="educationTemplate">
+    <div class="entry-card education-card">
+      <button type="button" class="remove-btn" onclick="removeBlock(this)" title="Remove education">&times;</button>
+      <div class="form-group-row">
+        <div class="form-group">
+          <label class="form-label">Degree <span class="req">*</span></label>
+          <input type="text" class="glass-input degree" placeholder="e.g. B.S. in Computer Science">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Institution / University <span class="req">*</span></label>
+          <input type="text" class="glass-input college" placeholder="e.g. UC Berkeley">
+        </div>
+      </div>
+      <div class="form-group-row" style="margin-bottom: 0;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">Graduation Year / Range</label>
+          <input type="text" class="glass-input year" placeholder="e.g. Aug 2018 – May 2022">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label">CGPA / Honors</label>
+          <input type="text" class="glass-input cgpa" placeholder="e.g. 3.92 GPA | Magna Cum Laude">
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Key Projects Template -->
+  <template id="projectTemplate">
+    <div class="entry-card project-card">
+      <button type="button" class="remove-btn" onclick="removeBlock(this)" title="Remove project">&times;</button>
+      <div class="form-group-row">
+        <div class="form-group">
+          <label class="form-label">Project Name <span class="req">*</span></label>
+          <input type="text" class="glass-input project-name" placeholder="e.g. DistributedCache-Go">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tech Stack</label>
+          <input type="text" class="glass-input tech-stack" placeholder="e.g. Go, Redis, Docker">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Project Link / Repo URL</label>
+        <input type="text" class="glass-input project-link" placeholder="e.g. github.com/user/project">
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label class="form-label">Impact & Key Highlights</label>
+        <textarea class="glass-textarea project-desc" placeholder="High-throughput distributed in-memory cache; benchmarked 95k ops/sec..."></textarea>
+      </div>
+    </div>
+  </template>
+
+  <!-- ==========================================================================
+       FIX 1: Sample Data Confirmation Modal (4-Way Close)
+       ========================================================================== -->
+  <div class="modal-overlay" id="sampleDataModal" role="dialog" aria-modal="true" aria-labelledby="sampleModalTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="sampleModalTitle">Load Sample Engineering Profile?</h3>
+        <!-- (a) Top-right ✕ button -->
+        <button type="button" class="modal-close" id="closeSampleModalBtn" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--ink-muted); line-height: 1.5; margin-bottom: 1rem;">
+          This will populate your form with a comprehensive, ATS-optimized sample profile (<strong>Alexander Chen — Staff Engineer</strong> at Stripe & Datadog).
+        </p>
+        <div style="background: var(--paper-subtle); border: 1px solid var(--border-hairline); border-radius: var(--radius-sharp); padding: 0.85rem; font-size: 0.8rem; color: var(--ink-body);">
+          <strong>Safe Preview:</strong> If you cancel or close this modal, your currently edited resume is fully preserved and restored without data loss.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <!-- (b) Cancel button -->
+        <button type="button" class="btn-secondary" id="cancelSampleModalBtn">Cancel & Keep My Resume</button>
+        <!-- Confirm button -->
+        <button type="button" class="btn-download-primary" id="confirmSampleDataBtn">
+          <span class="material-symbols-outlined" style="font-size: 16px;">check</span> Load Sample Data
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       FIX 3: Download Preview & Confirmation Modal
+       ========================================================================== -->
+  <div class="modal-overlay" id="downloadPreviewModal" role="dialog" aria-modal="true" aria-labelledby="downloadFormatTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span class="material-symbols-outlined" id="downloadFormatIcon" style="color: var(--accent-rust);">download</span>
+          <h3 id="downloadFormatTitle">Download Document</h3>
+        </div>
+        <button type="button" class="modal-close" id="closeDownloadModalBtn" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="downloadFormatDesc" style="font-size: 0.85rem; color: var(--ink-muted); line-height: 1.5; margin-bottom: 1rem;">
+          Preparing your ATS-compliant resume for export.
+        </p>
+        <div style="background: var(--paper-subtle); border: 1px solid var(--border-hairline); border-radius: var(--radius-sharp); padding: 0.85rem; font-size: 0.8rem; color: var(--ink-body);">
+          Linear Flow Verified • Standard Headings • Zero Complex Tables
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="cancelDownloadModalBtn">Cancel</button>
+        <button type="button" class="btn-download-primary" id="confirmDownloadBtn">
+          <span class="material-symbols-outlined" style="font-size: 16px;">download</span> Download File Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Provider Setup Modal -->
+  <div class="modal-overlay" id="apiKeysModal" role="dialog" aria-modal="true" aria-labelledby="apiModalTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="apiModalTitle">AI Provider Setup</h3>
+        <button type="button" class="modal-close" id="closeApiModalBtn" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.82rem; color: var(--ink-muted); margin-bottom: 1rem;">
+          API keys must stay on the server. Do not paste them into this page or commit them to GitHub. In your Netlify site, open <strong>Site configuration → Environment variables</strong> and add the variables below:
+        </p>
+        <div class="form-group" style="font-family: var(--font-mono);">
+          GEMINI_API_KEY<br>
+          ANTHROPIC_API_KEY<br>
+          GROQ_API_KEY
+        </div>
+        <!-- Official Free Tier Rate Limits Reference Table -->
+        <div style="margin-top: 1.25rem; border: 1px solid var(--border-hairline); border-radius: var(--radius-sharp); padding: 0.75rem; background-color: var(--paper-subtle);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <strong style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-secondary);">Official Free Tier Rate Limits (RPD • RPM • TPM)</strong>
+            <span style="font-size: 0.68rem; color: #166534; font-weight: 600;">● Active Tracking</span>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.73rem; font-family: var(--font-mono); text-align: left;">
+            <thead>
+              <tr style="color: var(--ink-muted); border-bottom: 1px solid var(--border-hairline);">
+                <th style="padding: 4px 6px;">Provider & Model</th>
+                <th style="padding: 4px 6px;">RPD (Daily Req)</th>
+                <th style="padding: 4px 6px;">RPM (Req/Min)</th>
+                <th style="padding: 4px 6px;">TPM (Tokens/Min)</th>
+                <th style="padding: 4px 6px;">Daily Token Budget</th>
+              </tr>
+            </thead>
+            <tbody style="color: var(--ink-primary);">
+              <tr style="border-bottom: 1px solid var(--border-hairline);">
+                <td style="padding: 6px 6px; font-weight: 600;">Google Gemini 2.5 Flash</td>
+                <td style="padding: 6px 6px; color: #166534; font-weight: 600;">1,500 RPD</td>
+                <td style="padding: 6px 6px;">15 RPM</td>
+                <td style="padding: 6px 6px;">1,000,000 TPM</td>
+                <td style="padding: 6px 6px;">5,000,000 TPD</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-hairline);">
+                <td style="padding: 6px 6px; font-weight: 600;">Groq Llama 3.3 70B</td>
+                <td style="padding: 6px 6px; color: #166534; font-weight: 600;">1,000 RPD</td>
+                <td style="padding: 6px 6px;">30 RPM</td>
+                <td style="padding: 6px 6px;">12,000 TPM</td>
+                <td style="padding: 6px 6px;">100,000 TPD</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-hairline);">
+                <td style="padding: 6px 6px; font-weight: 600;">Groq Llama 3.1 8B</td>
+                <td style="padding: 6px 6px; color: #166534; font-weight: 600;">14,400 RPD</td>
+                <td style="padding: 6px 6px;">30 RPM</td>
+                <td style="padding: 6px 6px;">6,000 TPM</td>
+                <td style="padding: 6px 6px;">500,000 TPD</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 6px; font-weight: 600;">Anthropic Claude 3.5</td>
+                <td style="padding: 6px 6px;">500 RPD</td>
+                <td style="padding: 6px 6px;">50 RPM</td>
+                <td style="padding: 6px 6px;">40,000 TPM</td>
+                <td style="padding: 6px 6px;">250,000 TPD</td>
+              </tr>
+            </tbody>
+          </table>
+          <p style="margin: 0.5rem 0 0 0; font-size: 0.68rem; color: var(--ink-faint);">
+            Quotas reset automatically at midnight Pacific Time. When approaching limit thresholds (65% amber, 90% red), ResumeForge alerts you and shifts to available fallback models.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" id="cancelApiModalBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Screen Overlay -->
+  <div class="loading-overlay" id="loadingOverlay" role="status" aria-live="polite">
+    <div class="spinner"></div>
+    <div id="loadingText" style="color: var(--ink-primary); font-family: var(--font-serif); font-size: 1.15rem; font-weight: 700;">Optimizing resume with ATS metrics...</div>
+  </div>
+
+  <!-- Toast Notification Container with Undo Support -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- Core JavaScript Modules -->
+  <script src="js/usageTracker.js"></script>
+  <script src="js/aiProviders.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/formHandler.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
